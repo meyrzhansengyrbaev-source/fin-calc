@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinCalc Pro — Сіздің қаржылық көмекшіңіз</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <style>
+        :root {
+            --bg: #1a0033; --card: #2d0050; --accent: #ffcc00;
+            --accent-gradient: linear-gradient(135deg, #ffcc00, #ff9900);
+            --text: #ffffff; --dim: #b388ff; --danger: #ff4d4d;
+        }
+        body.light {
+            --bg: #f3e5f5; --card: #ffffff; --text: #2d0050;
+            --dim: #6a1b9a; --accent: #6200ea;
+            --accent-gradient: linear-gradient(135deg, #6200ea, #b388ff);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Manrope', sans-serif; margin: 0; padding: 15px; background: var(--bg); color: var(--text); transition: 0.4s; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .lang-switch { display: flex; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; }
+        .lang-btn { border: none; background: none; color: var(--dim); padding: 8px 16px; cursor: pointer; border-radius: 10px; font-weight: 800; font-size: 12px; transition: 0.3s; }
+        .lang-btn.active { background: var(--accent-gradient); color: #000; box-shadow: 0 4px 10px rgba(255,204,0,0.3); }
+
+        h1 { margin: 10px 0; font-weight: 800; font-size: 28px; letter-spacing: -1px; }
+        .gold-text { background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .card { 
+            background: var(--card); border-radius: 30px; padding: 25px; margin-bottom: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
+        }
+
+        label { display: block; font-size: 11px; color: var(--dim); margin: 0 0 8px 8px; text-transform: uppercase; font-weight: 700; }
+        input, select { 
+            width: 100%; padding: 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); 
+            font-size: 16px; background: rgba(0,0,0,0.2); color: #fff; outline: none; margin-bottom: 15px;
+        }
+        body.light input, body.light select { color: #000; background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.1); }
+
+        .res-box { margin: 20px 0; padding: 20px; border-radius: 22px; background: rgba(255, 204, 0, 0.05); border: 1px dashed var(--accent); text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        .big-val { font-size: 26px; font-weight: 800; color: var(--accent); display: block; }
+
+        .table-wrap { overflow-x: auto; border-radius: 20px; background: rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { padding: 15px; text-align: left; color: var(--dim); border-bottom: 2px solid rgba(255,255,255,0.05); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+        .btn-export-luxury {
+            width: 100%; margin-top: 20px; padding: 14px; border-radius: 18px; border: 1px solid rgba(255, 204, 0, 0.3);
+            background: rgba(255, 204, 0, 0.05); color: var(--accent); font-weight: 700; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: 0.3s; backdrop-filter: blur(5px);
+        }
+        .btn-export-luxury:hover { background: var(--accent-gradient); color: #000; box-shadow: 0 10px 20px rgba(255, 204, 0, 0.2); transform: translateY(-2px); }
+        .btn-export-luxury svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .chart-wrap { height: 220px; margin-bottom: 25px; }
+        .theme-toggle { font-size: 24px; cursor: pointer; background: none; border: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('kz')" id="btn-kz">KZ</button>
+        <button class="lang-btn" onclick="setLang('ru')" id="btn-ru">RU</button>
+    </div>
+</div>
+
+<h1>FinCalc <span class="gold-text">Pro</span></h1>
+<p id="t-sub" style="color:var(--dim); margin-top:-10px; font-size:14px; font-weight:600">Сіздің қаржылық көмекшіңіз</p>
+
+<div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+
+<div class="card">
+    <h3 id="t-dep-h">💎 Депозит</h3>
+    <label id="t-dep-p">Бастапқы сома</label>
+    <input id="p_cap" type="text" placeholder="1 000 000" oninput="handleInput(this)">
+    <div style="display: flex; gap: 15px;">
+        <div style="flex: 1;"><label id="t-dep-r">Пайыз (%)</label><input id="r_cap" type="number" placeholder="14.5" oninput="calculate()"></div>
+        <div style="flex: 1;"><label id="t-dep-t">Мерзімі (жыл)</label><input id="t_cap" type="number" placeholder="5" oninput="calculate()"></div>
+    </div>
+    <div id="res_cap" class="res-box"></div>
+    <div class="table-wrap"><table id="depoTable"></table></div>
+    <button class="btn-export-luxury" onclick="doExport('depoTable', 'Deposit')">
+        <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M16,11V18.1L13.9,16L11.1,18.7L8.2,15.9L11,13.1L8.9,11H16Z"/></svg>
+        <span>Экспорт CSV</span>
+    </button>
+</div>
+
+<div class="card">
+    <h3 id="t-loan-h">💳 Кредит</h3>
+    <label id="t-loan-s">Кредит сомасы</label>
+    <input id="s_loan" type="text" placeholder="500 000" oninput="handleInput(this)">
+    <div style="display: flex; gap: 15px;">
+        <div style="flex: 1;"><label id="t-loan-r">Мөлшерлеме (%)</label><input id="r_loan" type="number" placeholder="18" oninput="calculate()"></div>
+        <div style="flex: 1;"><label id="t-loan-n">Мерзімі (ай)</label><input id="n_loan" type="number" placeholder="12" oninput="calculate()"></div>
+    </div>
+    <select id="type_loan" onchange="calculate()">
+        <option value="annuity">Аннуитеттік</option>
+        <option value="diff">Дифференциалдық</option>
+    </select>
+    <div id="res_loan" class="res-box"></div>
+    <div class="table-wrap"><table id="loanTable"></table></div>
+    <button class="btn-export-luxury" onclick="doExport('loanTable', 'Loan')">
+        <svg viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M16,11V18.1L13.9,16L11.1,18.7L8.2,15.9L11,13.1L8.9,11H16Z"/></svg>
+        <span>Экспорт CSV</span>
+    </button>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    let chart, lang = 'kz';
+    const lex = {
+        kz: { sub: "Сіздің қаржылық көмекшіңіз", dep: "Депозит", loan: "Кредит", profit: "Таза табыс", over: "Артық төлем", year: "жыл", total: "Баланс", pay: "Төлем", rem: "Қалдық", month: "Ай" },
+        ru: { sub: "Ваш финансовый помощник", dep: "Депозит", loan: "Кредит", profit: "Чистая прибыль", over: "Переплата", year: "лет", total: "Баланс", pay: "Платеж", rem: "Остаток", month: "Мес" }
+    };
+
+    const fmt = v => Math.floor(v).toLocaleString('ru-RU') + " ₸";
+    function handleInput(el) {
+        let val = el.value.replace(/\s+/g, '').replace(/[^0-9]/g, '');
+        if (val) el.value = Number(val).toLocaleString('ru-RU');
+        calculate();
+    }
+    const getVal = id => Number($(id).value.replace(/\s+/g, '')) || 0;
+
+    function setLang(l) {
+        lang = l;
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.id === 'btn-'+l));
+        $('t-sub').innerText = lex[l].sub;
+        calculate();
+    }
+
+    function calculate() {
+        const t = lex[lang];
+        
+        // Депозит есептеу
+        const p1 = getVal('p_cap'), r1 = +$('r_cap').value/100, t1 = +$('t_cap').value;
+        if(p1 > 0 && r1 > 0 && t1 > 0) {
+            let cur = p1, table = `<tr><th>${t.year}</th><th>${t.pay}</th><th>${t.total}</th></tr>`, pts = [p1];
+            for(let i=1; i<=t1; i++) {
+                let inter = cur * r1; cur += inter; pts.push(cur);
+                if(i <= 12) table += `<tr><td>${i}</td><td>+${fmt(inter)}</td><td>${fmt(cur)}</td></tr>`;
+            }
+            $('res_cap').innerHTML = `<span class="big-val">${fmt(cur)}</span><span style="color:var(--dim); font-size:12px;">${t.profit}: <b style="color:var(--accent)">${fmt(cur-p1)}</b></span>`;
+            $('depoTable').innerHTML = table;
+            renderChart(pts, t1);
+        } else {
+            $('res_cap').innerHTML = "";
+            $('depoTable').innerHTML = "";
+        }
+
+        // Кредит есептеу
+        const s = getVal('s_loan'), r = +$('r_loan').value/100/12, n = +$('n_loan').value;
+        if(s > 0 && r > 0 && n > 0) {
+            let curS = s, tot = 0, type = $('type_loan').value;
+            let table = `<tr><th>${t.month}</th><th>${t.pay}</th><th>${t.rem}</th></tr>`;
+            const annPay = s * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            for(let i=1; i<=n; i++) {
+                let p = (type === 'annuity') ? annPay : (s/n) + (curS * r);
+                tot += p; curS -= (type === 'annuity') ? (p - (curS * r)) : (s/n);
+                if(i <= 12) table += `<tr><td>${i}</td><td>${fmt(p)}</td><td>${fmt(Math.max(0, curS))}</td></tr>`;
+            }
+            $('res_loan').innerHTML = `<span class="big-val">${fmt(tot/n)}</span><span style="color:var(--danger); font-size:12px;">${t.over}: ${fmt(tot-s)}</span>`;
+            $('loanTable').innerHTML = table;
+        } else {
+            $('res_loan').innerHTML = "";
+            $('loanTable').innerHTML = "";
+        }
+    }
+
+    function doExport(id, name) {
+        const rows = Array.from($(id).querySelectorAll('tr'));
+        if (rows.length === 0) return;
+        const content = rows.map(r => Array.from(r.querySelectorAll('th, td')).map(c => c.innerText.replace(/[^\d.₸+]/g, '')).join(';')).join('\n');
+        const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${name}_Report.csv`;
+        link.click();
+    }
+
+    function renderChart(data, years) {
+        if (chart) chart.destroy();
+        const ctx = $('mainChart').getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 200);
+        grad.addColorStop(0, 'rgba(255, 204, 0, 0.4)');
+        grad.addColorStop(1, 'rgba(255, 204, 0, 0)');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: years + 1}, (_, i) => i),
+                datasets: [{ data, borderColor: '#ffcc00', borderWidth: 3, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#b388ff' } }, y: { display: false } } }
+        });
+    }
+
+    function toggleTheme() { document.body.classList.toggle('light'); }
+    window.onload = () => setLang('kz');
+</script>
+</body>
+</html>
